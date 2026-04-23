@@ -48,7 +48,7 @@ def get_usd_red_folders() -> list[str]:
         if not (currency and impact and title):
             continue
 
-        if currency.get_text(strip=True).upper() != "USD":
+        if currency.get_text(strip=True).upper() not in ("USD", "EUR"):
             continue
 
         impact_class = impact.get("class", [])
@@ -83,9 +83,9 @@ def get_forex_briefing() -> str:
     headlines = get_recent_headlines()
 
     if red_folders:
-        folders_text = "Today's USD red folders: " + ", ".join(red_folders) + "."
+        folders_text = "Today's USD and EUR high-impact events: " + ", ".join(red_folders) + "."
     else:
-        folders_text = "No USD high-impact events today."
+        folders_text = "No USD or EUR high-impact events today."
 
     if headlines:
         headlines_text = "Key news in the last 10 hours: " + ". ".join(headlines[:3]) + "."

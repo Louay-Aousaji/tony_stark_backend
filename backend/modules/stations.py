@@ -120,6 +120,17 @@ def resolve_station(spoken: str) -> dict | None:
                 if overlap:
                     score = len(overlap) * 10
 
+            # Fuzzy: check if spoken words are substrings of station words (handles "teresian" ≈ "theresien")
+            if score == 0:
+                for sw in spoken_norm.split():
+                    for tw in s_norm.split():
+                        if len(sw) >= 5 and len(tw) >= 5:
+                            # count matching chars at start
+                            common = sum(a == b for a, b in zip(sw, tw))
+                            ratio = common / max(len(sw), len(tw))
+                            if ratio >= 0.75:
+                                score = max(score, int(ratio * 40))
+
         if score > best_score:
             best_score = score
             best_station = s

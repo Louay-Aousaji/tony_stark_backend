@@ -68,14 +68,13 @@ def _fetch_weather(lat: float, lon: float) -> dict | None:
     params = {
         "latitude": lat,
         "longitude": lon,
-        "current": "temperature_2m,apparent_temperature,weathercode,windspeed_10m",
-        "hourly": "temperature_2m,precipitation_probability,precipitation,weathercode",
-        "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
+        "current_weather": "true",
+        "hourly": "temperature_2m,precipitation_probability,precipitation,weathercode,apparent_temperature,windspeed_10m",
         "timezone": "Europe/Berlin",
         "forecast_days": 2,
     }
     try:
-        r = requests.get(BASE_URL, params=params, timeout=10)
+        r = requests.get(BASE_URL, params=params, timeout=15)
         r.raise_for_status()
         return r.json()
     except Exception:
@@ -105,16 +104,25 @@ def get_weather_briefing(location: str = "Munich") -> str:
     if not data:
         return "Weather data unavailable right now."
 
-    current = data.get("current", {})
-    temp = round(current.get("temperature_2m", 0))
-    feels = round(current.get("apparent_temperature", temp))
-    wind = round(current.get("windspeed_10m", 0))
+    current = data.get("current_weather", {})
+    hourly = data.get("hourly", {})
+    times = hourly.get("time", [])
+
+    temp = round(current.get("temperature", 0))
+    wind = round(current.get("windspeed", 0))
     code = current.get("weathercode", 0)
     desc = _wmo_description(code)
 
-    # Find rain windows in next 12 hours
-    hourly = data.get("hourly", {})
-    times = hourly.get("time", [])
+    # Get feels like and rain from hourly (find current hour index)
+    now_str = datetime.now().strftime("%Y-%m-%dT%H:00")
+    try:
+        cur_idx = times.index(now_str)
+    except ValueError:
+        cur_idx = 0
+
+    feels_list = hourly.get("apparent_temperature", [])
+    feels = round(feels_list[cur_idx]) if feels_list else temp
+
     precip_prob = hourly.get("precipitation_probability", [])
     precip_mm = hourly.get("precipitation", [])
 
@@ -127,7 +135,7 @@ def get_weather_briefing(location: str = "Munich") -> str:
             prob = precip_prob[i] if i < len(precip_prob) else 0
             mm = precip_mm[i] if i < len(precip_mm) else 0
             if prob >= 40 or mm > 0:
-                rain_windows.append((slot_time.strftime("%-I %p"), prob, mm))
+                rain_windows.append((slot_time.strftime("%H:%M"), prob, mm))
 
     location_label = location.title() if location.lower() not in ("munich", "münchen") else "Munich"
     speech = f"{location_label}: {temp} degrees Celsius, {desc}, wind {wind} kilometres per hour."
@@ -166,7 +174,7 @@ def get_rain_detail(location: str = "Munich") -> str:
             mm = precip_mm[i] if i < len(precip_mm) else 0
             if prob >= 30 or mm > 0:
                 intensity = "heavy" if mm > 5 else "moderate" if mm > 2 else "light"
-                rain_slots.append(f"{intensity} rain at {slot_time.strftime('%-I %p')} ({int(prob)}% chance)")
+                rain_slots.append(f"{intensity} rain at {slot_time.strftime('%H:%M')} ({int(prob)}% chance)")
 
     if not rain_slots:
         return "No significant rain expected in the next 12 hours."

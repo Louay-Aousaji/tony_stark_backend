@@ -9,7 +9,8 @@ MORNING_TRIGGERS = ["good morning", "brief me", "morning briefing", "guten morge
 # Forex Factory keywords to scan in headlines
 FOREX_KEYWORDS = [
     "fed", "cpi", "trump", "ceasefire", "chairman", "retail sales",
-    "inflation", "rate", "fomc", "powell", "gdp", "unemployment", "nfp"
+    "inflation", "rate", "fomc", "powell", "gdp", "unemployment", "nfp",
+    "ecb", "lagarde", "euro", "eur", "eurozone", "europe", "draghi"
 ]
 
 # TTS speed (words per minute) — adjust to taste
